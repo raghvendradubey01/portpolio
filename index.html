@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raghvendra Dubey — Cyber 3D Developer Portfolio</title>
+  <meta name="description" content="Cyber 3D interactive portfolio of Raghvendra Dubey — AI/ML Engineer, Full Stack Developer, and Agentic AI Enthusiast." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            display: ['Orbitron', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      background-color: #03060D;
+      color: #E2E8F0;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    .hud-panel {
+      background: rgba(6, 12, 24, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(34, 211, 238, 0.22);
+      box-shadow: 0 0 30px rgba(6, 182, 212, 0.06), inset 0 0 20px rgba(6, 182, 212, 0.03);
+    }
+    .hud-panel:hover {
+      border-color: rgba(34, 211, 238, 0.5);
+      box-shadow: 0 0 36px rgba(6, 182, 212, 0.14);
+    }
+    .outline-text {
+      -webkit-text-stroke: 1.5px rgba(226, 232, 240, 0.75);
+      color: transparent;
+    }
+    .scanline {
+      background: linear-gradient(to bottom, transparent 50%, rgba(34, 211, 238, 0.025) 50%);
+      background-size: 100% 4px;
+    }
+    .view-enter {
+      animation: fadeSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #03060D; }
+    ::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.3); border-radius: 9999px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-100">
+
+  <!-- 3D WebGL Background Canvas -->
+  <div id="webgl-container" class="fixed inset-0 z-0 pointer-events-none"></div>
+  <div class="fixed inset-0 z-0 pointer-events-none scanline opacity-60"></div>
+
+  <!-- Toast Notification -->
+  <div id="toast" role="status" aria-live="polite" class="fixed bottom-16 right-6 z-50 hidden items-center gap-2.5 rounded-lg border border-cyan-400/40 bg-[#060C18]/95 px-4 py-2.5 text-xs font-mono text-cyan-200 shadow-2xl backdrop-blur-xl">
+    <i data-lucide="terminal" class="h-4 w-4 text-cyan-400 shrink-0"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <!-- Top Cyber HUD Navigation Bar -->
+  <header class="sticky top-0 z-40 border-b border-cyan-500/20 bg-[#03060D]/85 backdrop-blur-xl">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+      <button type="button" data-view-target="core" class="nav-trigger flex items-center gap-3 text-left focus:outline-none">
+        <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/50 bg-cyan-500/10 font-display text-xs font-bold text-cyan-300">
+          RD
+        </div>
+        <div class="hidden sm:block leading-tight">
+          <div class="flex items-center gap-1.5 font-mono text-[10px] tracking-widest text-cyan-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            SYSTEM ACTIVE
+          </div>
+          <div class="font-mono text-[11px] text-slate-400">RD.OS // 3D SPACE</div>
+        </div>
+      </button>
+
+      <!-- Desktop HUD Navigation Pills -->
+      <nav aria-label="Cyber HUD Navigation" class="hidden lg:flex items-center gap-1.5 overflow-x-auto">
+        <button type="button" data-view-target="core" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="cpu" class="h-3.5 w-3.5"></i> CORE
+        </button>
+        <button type="button" data-view-target="bio" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="user" class="h-3.5 w-3.5"></i> BIO ROOM
+        </button>
+        <button type="button" data-view-target="skills" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="orbit" class="h-3.5 w-3.5"></i> 3D ORBIT SKILLS
+        </button>
+        <button type="button" data-view-target="projects" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="building-2" class="h-3.5 w-3.5"></i> CYBER CITY
+        </button>
+        <button type="button" data-view-target="experience" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="clock" class="h-3.5 w-3.5"></i> TIME WARP
+        </button>
+        <button type="button" data-view-target="github" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="github" class="h-3.5 w-3.5"></i> HOLO HQ
+        </button>
+        <button type="button" data-view-target="contact" class="hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition">
+          <i data-lucide="radio" class="h-3.5 w-3.5"></i> CONTACT
+        </button>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <button id="open-terminal-top" type="button" class="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 font-mono text-[11px] text-cyan-300 hover:bg-cyan-500/20 transition">
+          <i data-lucide="terminal" class="h-3.5 w-3.5"></i> TERMINAL
+        </button>
+        <button id="mobile-menu-btn" type="button" aria-label="Toggle Menu" class="lg:hidden rounded-md border border-cyan-500/30 bg-cyan-500/10 p-2 text-cyan-300">
+          <i data-lucide="menu" class="h-4 w-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden lg:hidden border-t border-cyan-500/20 bg-[#050A14]/95 px-4 py-3 grid grid-cols-2 gap-2">
+      <button type="button" data-view-target="core" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">CORE</button>
+      <button type="button" data-view-target="bio" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">BIO ROOM</button>
+      <button type="button" data-view-target="skills" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">3D ORBIT SKILLS</button>
+      <button type="button" data-view-target="projects" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">CYBER CITY</button>
+      <button type="button" data-view-target="experience" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">TIME WARP</button>
+      <button type="button" data-view-target="github" class="mobile-nav-btn nav-trigger rounded-md border border-white/10 px-3 py-2 text-left font-mono text-xs text-slate-200">HOLO HQ</button>
+      <button type="button" data-view-target="contact" class="mobile-nav-btn nav-trigger col-span-2 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-center font-mono text-xs text-cyan-300">CONTACT</button>
+    </div>
+  </header>
+
+  <!-- Main Interactive Cyber Stage -->
+  <main class="relative z-10 flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 py-8 flex flex-col justify-center">
+
+    <!-- VIEW 1: CORE (HERO) -->
+    <section id="view-core" class="hud-view view-enter space-y-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-8 space-y-5">
+          <p class="font-mono text-xs tracking-[0.28em] text-cyan-400 uppercase">
+            AI/ML ENGINEER • AGENTIC AI • FULL STACK DEVELOPER
+          </p>
+
+          <div class="space-y-1">
+            <h1 class="font-display text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-none">
+              RAGHVENDRA
+            </h1>
+            <div class="font-display text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight outline-text leading-none">
+              DUBEY
+            </div>
+          </div>
+
+          <div class="inline-flex items-center gap-2 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 font-mono text-xs sm:text-sm text-cyan-300">
+            <span class="text-violet-400">&gt;</span>
+            <span id="rotating-role">AI/ML Engineer</span>
+          </div>
+
+          <p class="max-w-2xl text-sm sm:text-base text-slate-300 leading-relaxed">
+            "Building Intelligent Systems. Creating What's Next." — Computer Science student at UCER Prayagraj ('28) building AI-powered products, agentic workflows, and meaningful developer tools.
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button type="button" data-view-target="projects" class="nav-trigger inline-flex items-center gap-2 rounded-md bg-cyan-400 px-5 py-3 font-mono text-xs font-bold tracking-wider text-slate-950 shadow-[0_0_25px_rgba(34,211,238,0.4)] hover:bg-cyan-300 transition">
+              EXPLORE PROJECT UNIVERSE
+              <i data-lucide="arrow-right" class="h-4 w-4"></i>
+            </button>
+            <button id="open-terminal-hero" type="button" class="inline-flex items-center gap-2 rounded-md border border-cyan-500/30 bg-[#060C18]/90 px-5 py-3 font-mono text-xs font-semibold tracking-wider text-slate-200 hover:border-cyan-400 hover:text-white transition">
+              <i data-lucide="terminal" class="h-4 w-4 text-cyan-400"></i>
+              TERMINAL ACCESS (AI)
+            </button>
+            <button id="open-resume-btn" type="button" class="inline-flex items-center gap-2 rounded-md border border-white/15 bg-[#060C18]/90 px-4 py-3 font-mono text-xs font-semibold tracking-wider text-slate-300 hover:border-violet-400/60 hover:text-white transition">
+              <i data-lucide="file-text" class="h-4 w-4 text-violet-400"></i>
+              RESUME
+            </button>
+          </div>
+        </div>
+
+        <!-- Right HUD Telemetry Column -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="hud-panel rounded-xl p-5 flex items-center gap-4">
+            <div class="relative h-20 w-20 shrink-0 rounded-xl overflow-hidden border border-cyan-400/50 bg-[#03060D]">
+              <img id="hero-avatar" src="https://github.com/raghvendradubey01.png" alt="Raghvendra Dubey" class="h-full w-full object-cover" />
+              <div id="hero-avatar-fallback" class="hidden h-full w-full items-center justify-center font-display text-xl font-bold text-cyan-300">RD</div>
+            </div>
+            <div class="min-w-0 space-y-1">
+              <p class="font-mono text-[10px] tracking-widest text-cyan-400 uppercase">IDENTITY VERIFIED</p>
+              <p class="font-semibold text-white truncate">Raghvendra Dubey</p>
+              <p class="font-mono text-[11px] text-slate-400">B.Tech CSE • Class of 2028</p>
+              <div class="flex items-center gap-3 pt-1">
+                <a href="https://github.com/raghvendradubey01" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-cyan-300 transition" aria-label="GitHub"><i data-lucide="github" class="h-4 w-4"></i></a>
+                <a href="https://www.linkedin.com/in/raghvendra-dubey-a08436380/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-cyan-300 transition" aria-label="LinkedIn"><i data-lucide="linkedin" class="h-4 w-4"></i></a>
+              </div>
+            </div>
+          </div>
+
+          <div class="hud-panel rounded-xl p-5 space-y-2">
+            <div class="flex items-center justify-between font-mono text-[10px] tracking-widest text-slate-400">
+              <span>GITHUB NODE</span>
+              <span class="text-emerald-400">● ONLINE</span>
+            </div>
+            <p class="font-display text-lg font-bold text-white">@raghvendradubey01</p>
+            <p class="font-mono text-[11px] text-cyan-300">Agentic AI • LLMs • Full-Stack Web</p>
+          </div>
+
+          <div class="hud-panel rounded-xl p-5 space-y-1.5">
+            <p class="font-mono text-[10px] tracking-widest text-slate-400 uppercase">ACTIVE FOCUS</p>
+            <p class="font-semibold text-sm text-white">AI/ML Systems &amp; Developer Tools</p>
+            <p class="font-mono text-[11px] text-violet-400">UCER Prayagraj • Open to Collaborations</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: BIO ROOM (ABOUT) -->
+    <section id="view-bio" class="hud-view hidden view-enter space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+          ABOUT <span class="text-cyan-400">RAGHVENDRA DUBEY</span>
+        </h2>
+        <p class="font-mono text-xs text-slate-400">Step through the interactive HUD to explore background, education, and engineering focus.</p>
+      </div>
+
+      <div id="bio-subtabs" class="flex flex-wrap justify-center gap-2"></div>
+
+      <div class="mx-auto max-w-4xl hud-panel rounded-2xl p-6 sm:p-8 space-y-6">
+        <div id="bio-screen-content" class="space-y-6"></div>
+        <div class="flex items-center justify-between pt-4 border-t border-cyan-500/15">
+          <button id="bio-prev-btn" type="button" class="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-4 py-2 font-mono text-xs text-slate-300 hover:border-cyan-400/50 hover:text-white">
+            <i data-lucide="chevron-left" class="h-4 w-4"></i> PREV SCREEN
+          </button>
+          <button id="bio-next-btn" type="button" class="inline-flex items-center gap-1.5 rounded-md bg-cyan-400 px-4 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-300">
+            NEXT SCREEN <i data-lucide="chevron-right" class="h-4 w-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: 3D ORBIT SKILLS -->
+    <section id="view-skills" class="hud-view hidden view-enter space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+          TECHNICAL <span class="text-cyan-400">SKILLS ORBIT</span>
+        </h2>
+        <p class="font-mono text-xs text-slate-400">Filter by engineering domain to inspect languages, frameworks, AI stack, and platforms.</p>
+      </div>
+
+      <div id="skill-filters" class="flex flex-wrap justify-center gap-2"></div>
+      <div id="skills-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+    </section>
+
+    <!-- VIEW 4: CYBER CITY (FEATURED PROJECTS) -->
+    <section id="view-projects" class="hud-view hidden view-enter space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+          FLAGSHIP <span class="text-cyan-400">PROJECT BUILDINGS</span>
+        </h2>
+        <p class="font-mono text-xs text-slate-400">Click any project building to open its GitHub repository, or inspect its architecture blueprint.</p>
+      </div>
+
+      <div id="project-filters" class="flex flex-wrap justify-center gap-2"></div>
+      <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </section>
+
+    <!-- VIEW 5: TIME WARP (EXPERIENCE & ACHIEVEMENTS) -->
+    <section id="view-experience" class="hud-view hidden view-enter space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+          CHRONOLOGICAL <span class="text-cyan-400">TIME TUNNEL</span>
+        </h2>
+        <p class="font-mono text-xs text-slate-400">Navigate through key engineering milestones, mentorship, hackathons, and open-source involvement.</p>
+      </div>
+
+      <div id="warp-pills" class="flex flex-wrap justify-center gap-2"></div>
+
+      <div class="mx-auto max-w-3xl hud-panel rounded-2xl p-6 sm:p-8 space-y-6">
+        <div id="warp-card-content" class="space-y-4"></div>
+        <div class="flex items-center justify-between pt-4 border-t border-cyan-500/15">
+          <button id="warp-prev-btn" type="button" class="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-4 py-2 font-mono text-xs text-slate-300 hover:border-cyan-400/50 hover:text-white">
+            <i data-lucide="chevron-left" class="h-4 w-4"></i> WARP BACK
+          </button>
+          <div id="warp-dots" class="flex items-center gap-2"></div>
+          <button id="warp-next-btn" type="button" class="inline-flex items-center gap-1.5 rounded-md bg-cyan-400 px-4 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-300">
+            WARP FORWARD <i data-lucide="chevron-right" class="h-4 w-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: HOLO HQ (LIVE GITHUB) -->
+    <section id="view-github" class="hud-view hidden view-enter space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+            HOLO HQ // <span class="text-cyan-400">GITHUB TELEMETRY</span>
+          </h2>
+          <p class="font-mono text-xs text-slate-400 mt-1">Live public repository &amp; activity feed from GitHub API (zero fabricated stats).</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="refresh-gh-btn" type="button" class="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-2 font-mono text-xs text-cyan-300 hover:bg-cyan-500/20">
+            <i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> REFRESH
+          </button>
+          <a href="https://github.com/raghvendradubey01" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 rounded-md bg-cyan-400 px-3.5 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-300">
+            <i data-lucide="github" class="h-3.5 w-3.5"></i> @raghvendradubey01
+          </a>
+        </div>
+      </div>
+
+      <div id="gh-summary-panel" class="hud-panel rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 id="gh-name" class="font-display text-lg font-bold text-white">Raghvendra Dubey</h3>
+          <p id="gh-bio" class="font-mono text-xs text-slate-400">Connecting to GitHub API...</p>
+        </div>
+        <div id="gh-metrics" class="flex items-center gap-6 font-mono text-xs"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div id="gh-repos" class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        <div class="lg:col-span-4 hud-panel rounded-xl p-5 space-y-3">
+          <p class="font-mono text-xs font-bold tracking-wider text-cyan-400 uppercase">RECENT PUBLIC EVENTS</p>
+          <div id="gh-events" class="space-y-3 text-xs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 7: CONTACT -->
+    <section id="view-contact" class="hud-view hidden view-enter space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="font-display text-3xl sm:text-4xl font-black tracking-tight text-white">
+          TRANSMISSION <span class="text-cyan-400">CHANNEL</span>
+        </h2>
+        <p class="font-mono text-xs text-slate-400">Direct communication links and encrypted message dispatch.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-5 space-y-4">
+          <div class="hud-panel rounded-xl p-5 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-mono text-[10px] tracking-widest text-cyan-400 uppercase">DIRECT EMAIL</p>
+              <a href="mailto:raghvendradubey7439@gmail.com" class="block truncate text-sm font-medium text-white hover:text-cyan-300">raghvendradubey7439@gmail.com</a>
+            </div>
+            <button id="copy-email-btn" type="button" class="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 font-mono text-xs text-cyan-300 hover:bg-cyan-500/20">
+              <i data-lucide="copy" class="h-3.5 w-3.5"></i> <span id="copy-label">COPY</span>
+            </button>
+          </div>
+
+          <a href="https://www.linkedin.com/in/raghvendra-dubey-a08436380/" target="_blank" rel="noopener noreferrer" class="hud-panel rounded-xl p-5 flex items-center justify-between group block">
+            <div>
+              <p class="font-mono text-[10px] tracking-widest text-cyan-400 uppercase">LINKEDIN</p>
+              <p class="text-sm font-medium text-white group-hover:text-cyan-300">Raghvendra Dubey</p>
+            </div>
+            <i data-lucide="arrow-up-right" class="h-4 w-4 text-slate-400 group-hover:text-cyan-300"></i>
+          </a>
+
+          <a href="https://github.com/raghvendradubey01" target="_blank" rel="noopener noreferrer" class="hud-panel rounded-xl p-5 flex items-center justify-between group block">
+            <div>
+              <p class="font-mono text-[10px] tracking-widest text-cyan-400 uppercase">GITHUB</p>
+              <p class="text-sm font-medium text-white group-hover:text-cyan-300">@raghvendradubey01</p>
+            </div>
+            <i data-lucide="arrow-up-right" class="h-4 w-4 text-slate-400 group-hover:text-cyan-300"></i>
+          </a>
+        </div>
+
+        <form id="contact-form" novalidate class="lg:col-span-7 hud-panel rounded-xl p-6 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="cf-name" class="block font-mono text-[11px] text-cyan-300 mb-1">NAME</label>
+              <input id="cf-name" type="text" required placeholder="Alex Rivera" class="w-full rounded-md border border-white/15 bg-[#03060D]/90 px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none" />
+              <p id="err-name" class="hidden mt-1 font-mono text-[11px] text-rose-400"></p>
+            </div>
+            <div>
+              <label for="cf-email" class="block font-mono text-[11px] text-cyan-300 mb-1">EMAIL</label>
+              <input id="cf-email" type="email" required placeholder="alex@company.com" class="w-full rounded-md border border-white/15 bg-[#03060D]/90 px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none" />
+              <p id="err-email" class="hidden mt-1 font-mono text-[11px] text-rose-400"></p>
+            </div>
+          </div>
+          <div>
+            <label for="cf-subject" class="block font-mono text-[11px] text-cyan-300 mb-1">SUBJECT</label>
+            <input id="cf-subject" type="text" required placeholder="AI Engineering Collaboration" class="w-full rounded-md border border-white/15 bg-[#03060D]/90 px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none" />
+            <p id="err-subject" class="hidden mt-1 font-mono text-[11px] text-rose-400"></p>
+          </div>
+          <div>
+            <label for="cf-message" class="block font-mono text-[11px] text-cyan-300 mb-1">MESSAGE</label>
+            <textarea id="cf-message" rows="4" required placeholder="Enter transmission details..." class="w-full rounded-md border border-white/15 bg-[#03060D]/90 px-3.5 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none resize-none"></textarea>
+            <p id="err-message" class="hidden mt-1 font-mono text-[11px] text-rose-400"></p>
+          </div>
+          <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-cyan-400 px-5 py-2.5 font-mono text-xs font-bold tracking-wider text-slate-950 hover:bg-cyan-300 transition">
+            <i data-lucide="send" class="h-3.5 w-3.5"></i> TRANSMIT MESSAGE
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom HUD Status Bar -->
+  <footer class="relative z-10 border-t border-cyan-500/15 bg-[#03060D]/85 backdrop-blur-xl">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] text-slate-400">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-slate-500">SPECIALIZATION:</span>
+        <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">Python</span>
+        <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">FastAPI</span>
+        <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">React.js</span>
+        <span class="rounded border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-violet-300">LLMs &amp; Agents</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-emerald-400">SIGNAL: ONLINE // 100%</span>
+        <span>&copy; <span id="footer-year"></span> RAGHVENDRA DUBEY</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Project Architecture Modal -->
+  <div id="project-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-xl hud-panel rounded-2xl p-6 sm:p-8 space-y-4">
+      <button id="close-project-modal" type="button" aria-label="Close modal" class="absolute right-4 top-4 rounded-md border border-white/15 p-1.5 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="h-4 w-4"></i>
+      </button>
+      <div id="project-modal-body" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Interactive AI Terminal Modal -->
+  <div id="terminal-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-2xl hud-panel rounded-2xl overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between border-b border-cyan-500/20 bg-[#050A14] px-4 py-3">
+        <div class="flex items-center gap-2 font-mono text-xs text-cyan-300">
+          <i data-lucide="terminal" class="h-4 w-4"></i> RD.OS TERMINAL // TYPE 'help'
+        </div>
+        <button id="close-terminal-modal" type="button" aria-label="Close terminal" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <div id="terminal-output" class="h-64 overflow-y-auto p-4 font-mono text-xs text-slate-300 space-y-2 bg-[#03060D]/95">
+        <p class="text-cyan-400">RD.OS [Version 2.0] — Raghvendra Dubey Portfolio Terminal</p>
+        <p class="text-slate-400">Available commands: <span class="text-cyan-300">help</span>, <span class="text-cyan-300">whoami</span>, <span class="text-cyan-300">skills</span>, <span class="text-cyan-300">projects</span>, <span class="text-cyan-300">github</span>, <span class="text-cyan-300">contact</span>, <span class="text-cyan-300">clear</span></p>
+      </div>
+      <form id="terminal-form" class="flex items-center gap-2 border-t border-cyan-500/20 bg-[#050A14] px-4 py-3">
+        <span class="font-mono text-xs text-cyan-400">&gt;</span>
+        <input id="terminal-input" type="text" autocomplete="off" placeholder="Enter command..." class="flex-1 bg-transparent font-mono text-xs text-white focus:outline-none" />
+      </form>
+    </div>
+  </div>
+
+  <!-- Resume Modal -->
+  <div id="resume-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    <div class="relative w-full max-w-lg hud-panel rounded-2xl p-6 space-y-4">
+      <button id="close-resume-modal" type="button" aria-label="Close resume" class="absolute right-4 top-4 rounded-md border border-white/15 p-1.5 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="h-4 w-4"></i>
+      </button>
+      <h3 class="font-display text-lg font-bold text-white">RESUME // RAGHVENDRA DUBEY</h3>
+      <div class="rounded-lg border border-white/10 bg-[#03060D] p-4 font-mono text-xs text-slate-300 space-y-1.5">
+        <p><span class="text-cyan-400">EDUCATION:</span> B.Tech CSE, UCER Prayagraj (2028)</p>
+        <p><span class="text-cyan-400">FOCUS:</span> AI/ML, Agentic AI, Full Stack Development</p>
+        <p><span class="text-cyan-400">STACK:</span> Python, TypeScript, React, FastAPI, Node.js, Faster-Whisper</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="download-resume-txt" type="button" class="inline-flex items-center gap-2 rounded-md bg-cyan-400 px-4 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-300">
+          <i data-lucide="download" class="h-3.5 w-3.5"></i> DOWNLOAD SUMMARY (.TXT)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // CENTRALIZED EDITABLE CONFIGURATION (portfolioConfig)
+    // =========================================================================
+    const portfolioConfig = {
+      name: "Raghvendra Dubey",
+      roles: ["AI/ML Engineer", "Full Stack Developer", "Agentic AI Enthusiast"],
+      email: "raghvendradubey7439@gmail.com",
+      profileImage: "https://github.com/raghvendradubey01.png",
+      resumePath: "",
+      social: {
+        github: "https://github.com/raghvendradubey01",
+        githubUsername: "raghvendradubey01",
+        linkedin: "https://www.linkedin.com/in/raghvendra-dubey-a08436380/"
+      },
+      education: {
+        degree: "B.Tech Computer Science Engineering",
+        college: "United College of Engineering and Research, Prayagraj",
+        graduationYear: "2028"
+      },
+      bioScreens: [
+        {
+          id: "WHO I AM",
+          code: "01 :: WHO I AM",
+          subtitle: "AI/ML Engineer & Full Stack Developer",
+          body: "I am Raghvendra Dubey, a B.Tech Computer Science Engineering student at United College of Engineering and Research, Prayagraj (Class of 2028). I build AI-powered products, intelligent agentic systems, and developer tools.",
+          meta: [
+            ["INSTITUTION", "United College of Engineering and Research, Prayagraj"],
+            ["DEGREE", "B.Tech Computer Science Engineering"],
+            ["GRADUATION", "2028"],
+            ["LOCATION", "Prayagraj, India"]
+          ]
+        },
+        {
+          id: "MY JOURNEY",
+          code: "02 :: MY JOURNEY",
+          subtitle: "From Code Curiosity to Intelligent Systems",
+          body: "Started with core programming in Python, C, and Java before expanding into full-stack web engineering with React, TypeScript, Node.js, and FastAPI, and now building Agentic AI and local-first ML applications.",
+          meta: [
+            ["FOUNDATIONS", "Python, Java, C, JavaScript, TypeScript"],
+            ["WEB STACK", "React, Tailwind CSS, FastAPI, Node.js"],
+            ["AI STACK", "LLMs, AI Agents, Faster-Whisper, Prompt Engineering"]
+          ]
+        },
+        {
+          id: "VISION & GOALS",
+          code: "03 :: VISION & GOALS",
+          subtitle: "Practical Intelligence & Developer Craft",
+          body: "Focused on turning complex technical problems into practical, privacy-conscious products—bridging machine learning research with responsive, human-friendly software interfaces.",
+          meta: [
+            ["PRIMARY GOAL", "Engineer production-grade AI & full-stack systems"],
+            ["PHILOSOPHY", "Ship fast, iterate openly, keep interfaces clean"]
+          ]
+        },
+        {
+          id: "EXPERIENCE & FOCUS",
+          code: "04 :: EXPERIENCE & CORE FOCUS",
+          subtitle: "Community, Hackathons & Open Source",
+          body: "Active in technical hackathons, AIML Club mentorship coordination, open-source contributions, and independent product development.",
+          meta: [
+            ["COMMUNITY", "AIML Club Mentorship Coordination"],
+            ["OPEN SOURCE", "github.com/raghvendradubey01"]
+          ]
+        }
+      ],
+      skills: [
+        { name: "Python", code: "PY", category: "Programming", level: "Core" },
+        { name: "Java", code: "JV", category: "Programming", level: "Core" },
+        { name: "C", code: "C", category: "Programming", level: "Core" },
+        { name: "JavaScript", code: "JS", category: "Programming", level: "Core" },
+        { name: "TypeScript", code: "TS", category: "Programming", level: "Core" },
+        { name: "HTML5", code: "H5", category: "Frontend", level: "UI" },
+        { name: "CSS3", code: "C3", category: "Frontend", level: "UI" },
+        { name: "React", code: "RE", category: "Frontend", level: "UI" },
+        { name: "Tailwind CSS", code: "TW", category: "Frontend", level: "UI" },
+        { name: "Node.js", code: "NJ", category: "Backend", level: "API" },
+        { name: "FastAPI", code: "FA", category: "Backend", level: "API" },
+        { name: "REST APIs", code: "RS", category: "Backend", level: "API" },
+        { name: "Machine Learning", code: "ML", category: "AI & ML", level: "AI" },
+        { name: "Generative AI", code: "GA", category: "AI & ML", level: "AI" },
+        { name: "LLMs", code: "LM", category: "AI & ML", level: "AI" },
+        { name: "AI Agents", code: "AG", category: "AI & ML", level: "AI" },
+        { name: "Prompt Engineering", code: "PE", category: "AI & ML", level: "AI" },
+        { name: "Faster-Whisper", code: "FW", category: "AI & ML", level: "AI" },
+        { name: "Git", code: "GT", category: "Tools & Platforms", level: "Ops" },
+        { name: "GitHub", code: "GH", category: "Tools & Platforms", level: "Ops" },
+        { name: "VS Code", code: "VS", category: "Tools & Platforms", level: "Ops" },
+        { name: "Google AI Studio", code: "AS", category: "Tools & Platforms", level: "Ops" },
+        { name: "Firebase", code: "FB", category: "Tools & Platforms", level: "Ops" },
+        { name: "Vercel", code: "VC", category: "Tools & Platforms", level: "Ops" }
+      ],
+      projects: [
+        {
+          id: "daymark",
+          name: "Daymark",
+          category: "Productivity",
+          description: "Productivity and streak tracking platform designed to build daily engineering consistency with clean habit analytics.",
+          highlights: ["Daily streak engine with consistency tracking", "Goal categorization and focus sessions", "Responsive dark-first interface"],
+          stack: ["React", "TypeScript", "Tailwind CSS", "Firebase"],
+          repoUrl: "https://github.com/raghvendradubey01?tab=repositories"
+        },
+        {
+          id: "repopilot-ai",
+          name: "RepoPilot AI",
+          category: "AI & Agents",
+          description: "AI-powered repository analysis and coding assistant that maps codebases, explains architecture, and accelerates debugging.",
+          highlights: ["Automated repository indexing & VS Code integration", "Context-aware LLM Q&A for unfamiliar codebases", "Agentic code review suggestions"],
+          stack: ["Python", "FastAPI", "LLMs", "AI Agents", "TypeScript"],
+          repoUrl: "https://github.com/raghvendradubey01/repopilot-ai"
+        },
+        {
+          id: "voxtext",
+          name: "VoxText",
+          category: "AI & Agents",
+          description: "Privacy-focused speech-to-text transcription application powered by Faster-Whisper with real-time recording and audio upload.",
+          highlights: ["Local-first transcription using Faster-Whisper", "Real-time recording and audio upload support", "Privacy-preserving architecture"],
+          stack: ["Python", "Faster-Whisper", "FastAPI", "TypeScript"],
+          repoUrl: "https://github.com/raghvendradubey01/VoxText"
+        },
+        {
+          id: "aicte-workflow",
+          name: "AICTE Workflow Automation",
+          category: "Full Stack",
+          description: "Integrated AICTE approval workflow automation, compliance monitoring, and alert management platform.",
+          highlights: ["Multi-stage approval pipeline", "Compliance monitoring & alert management", "Role-based reviewer views"],
+          stack: ["TypeScript", "React", "Node.js", "REST APIs"],
+          repoUrl: "https://github.com/raghvendradubey01/Aproval-AI"
+        },
+        {
+          id: "purohit-setu",
+          name: "Purohit Setu",
+          category: "Full Stack",
+          description: "Platform for finding and connecting with nearby pandits with transparent service discovery and booking coordination.",
+          highlights: ["Location-oriented discovery for nearby pandits", "Service catalog and inquiry flow", "Mobile-first accessible UI"],
+          stack: ["React", "TypeScript", "Firebase", "Tailwind CSS"],
+          repoUrl: "https://github.com/raghvendradubey01?tab=repositories"
+        },
+        {
+          id: "taskflow",
+          name: "TaskFlow",
+          category: "Productivity",
+          description: "Agentic task management application for scheduling and notifying tasks with fast triage and clean execution.",
+          highlights: ["Task scheduling & notification agent", "Modular state architecture", "Clean responsive views"],
+          stack: ["Kotlin", "React", "TypeScript", "Tailwind CSS"],
+          repoUrl: "https://github.com/raghvendradubey01/TaskFlow"
+        }
+      ],
+      experience: [
+        {
+          label: "2024 – 2028",
+          category: "EDUCATION",
+          title: "B.Tech Computer Science Engineering",
+          org: "United College of Engineering and Research, Prayagraj",
+          description: "Pursuing B.Tech in Computer Science Engineering with a focus on AI/ML, Agentic AI systems, and Full Stack Web Development.",
+          tags: ["#ComputerScience", "#AI_ML", "#FullStack"]
+        },
+        {
+          label: "Ongoing",
+          category: "PRODUCT ENGINEERING",
+          title: "Independent AI & Full-Stack Product Development",
+          org: "Personal Projects & Tools",
+          description: "Designing and shipping applications across Agentic AI (RepoPilot AI), local speech transcription (VoxText), institutional automation (Aproval-AI), and productivity (Daymark, TaskFlow).",
+          tags: ["#AgenticAI", "#FasterWhisper", "#React"]
+        },
+        {
+          label: "Campus",
+          category: "LEADERSHIP",
+          title: "AIML Club Mentorship Coordination",
+          org: "UCER Prayagraj",
+          description: "Coordinating peer learning sessions, hands-on workshops, and foundational AI/ML study tracks for fellow Computer Science students.",
+          tags: ["#Mentorship", "#AIMLClub", "#Community"]
+        },
+        {
+          label: "2024 – Present",
+          category: "HACKATHONS",
+          title: "Technical Hackathon Participation",
+          org: "Hackathon Teams & Sprints",
+          description: "Collaborating in rapid-prototyping environments to architect, build, and pitch working AI and full-stack prototypes under tight deadlines.",
+          tags: ["#Hackathons", "#RapidPrototyping", "#Teamwork"]
+        },
+        {
+          label: "Ongoing",
+          category: "OPEN SOURCE",
+          title: "Open-Source & Developer Community Participation",
+          org: "GitHub (@raghvendradubey01)",
+          description: "Contributing to open-source repositories, exploring emerging LLM frameworks, and sharing developer experiments publicly on GitHub.",
+          tags: ["#OpenSource", "#GitHub", "#DevCommunity"]
+        }
+      ]
+    };
+
+    // =========================================================================
+    // THREE.JS CYBER 3D BACKGROUND (GRID + PARTICLES + MODE SWITCHING)
+    // =========================================================================
+    let sceneMode = 'core';
+    function initThreeBackground() {
+      const container = document.getElementById('webgl-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 4, 18);
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Perspective Cyber Grid Floor
+      const grid = new THREE.GridHelper(90, 45, 0x22d3ee, 0x0f2942);
+      grid.position.y = -6;
+      scene.add(grid);
+
+      // Glowing Cyber Voxel/Particle Cloud
+      const count = 320;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+      const c1 = new THREE.Color(0x22d3ee);
+      const c2 = new THREE.Color(0x8b5cf6);
+
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 34;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 18;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 24;
+        const mix = i % 3 === 0 ? c2 : c1;
+        colors[i * 3] = mix.r;
+        colors[i * 3 + 1] = mix.g;
+        colors[i * 3 + 2] = mix.b;
+      }
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.35,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.8
+      });
+      const particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+
+      // Cyber City Towers Group (visible in projects mode)
+      const cityGroup = new THREE.Group();
+      const towerColors = [0x06b6d4, 0x8b5cf6, 0x3b82f6, 0x10b981, 0xf59e0b, 0xec4899];
+      for (let i = 0; i < 6; i++) {
+        const h = 3.5 + (i % 3) * 1.8;
+        const geo = new THREE.BoxGeometry(1.4, h, 1.4);
+        const mat = new THREE.MeshBasicMaterial({
+          color: towerColors[i],
+          wireframe: true,
+          transparent: true,
+          opacity: 0.35
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set((i - 2.5) * 4.2, -6 + h / 2, -6);
+        cityGroup.add(mesh);
+      }
+      cityGroup.visible = false;
+      scene.add(cityGroup);
+
+      let mouseX = 0, mouseY = 0;
+      window.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+        mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        particles.rotation.y += sceneMode === 'skills' ? 0.003 : 0.0012;
+        particles.rotation.x += sceneMode === 'experience' ? 0.002 : 0.0004;
+        cityGroup.visible = sceneMode === 'projects';
+        if (cityGroup.visible) {
+          cityGroup.rotation.y = Math.sin(Date.now() * 0.0004) * 0.12;
+        }
+        camera.position.x += (mouseX * 1.8 - camera.position.x) * 0.03;
+        camera.position.y += (4 - mouseY * 1.1 - camera.position.y) * 0.03;
+        camera.lookAt(0, 0, 0);
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    // =========================================================================
+    // STATE & VIEW NAVIGATION
+    // =========================================================================
+    let currentView = 'core';
+    let bioIdx = 0;
+    let warpIdx = 0;
+    let skillFilter = 'All';
+    let projectFilter = 'All';
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-message').textContent = msg;
+      t.classList.remove('hidden');
+      t.classList.add('flex');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        t.classList.add('hidden');
+        t.classList.remove('flex');
+      }, 3000);
+    }
+
+    function switchView(target) {
+      currentView = target;
+      sceneMode = target;
+      document.querySelectorAll('.hud-view').forEach(sec => sec.classList.add('hidden'));
+      const activeEl = document.getElementById(`view-${target}`);
+      if (activeEl) {
+        activeEl.classList.remove('hidden');
+        activeEl.classList.remove('view-enter');
+        void activeEl.offsetWidth;
+        activeEl.classList.add('view-enter');
+      }
+
+      document.querySelectorAll('.hud-nav-btn').forEach(btn => {
+        const isActive = btn.getAttribute('data-view-target') === target;
+        btn.className = `hud-nav-btn nav-trigger inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold tracking-wider transition ${
+          isActive
+            ? 'bg-cyan-400 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.45)]'
+            : 'text-slate-300 hover:bg-white/5 hover:text-cyan-300'
+        }`;
+      });
+      document.getElementById('mobile-menu').classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // BIO ROOM
+    function renderBio() {
+      const tabs = document.getElementById('bio-subtabs');
+      const content = document.getElementById('bio-screen-content');
+      tabs.innerHTML = portfolioConfig.bioScreens.map((b, idx) => `
+        <button type="button" data-bio-idx="${idx}" class="rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold transition ${
+          idx === bioIdx
+            ? 'bg-cyan-400 text-slate-950'
+            : 'border border-white/15 bg-[#060C18] text-slate-400 hover:text-white'
+        }">${escapeHtml(b.id)}</button>
+      `).join('');
+
+      const item = portfolioConfig.bioScreens[bioIdx];
+      content.innerHTML = `
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h3 class="font-display text-lg font-bold text-cyan-300">${escapeHtml(item.code)}</h3>
+            <p class="font-mono text-xs text-slate-400">${escapeHtml(item.subtitle)}</p>
+          </div>
+          <span class="font-mono text-xs text-slate-400">SCREEN [${bioIdx + 1}/${portfolioConfig.bioScreens.length}]</span>
+        </div>
+        <p class="text-sm sm:text-base text-slate-200 leading-relaxed">${escapeHtml(item.body)}</p>
+        <div class="rounded-xl border border-cyan-500/15 bg-[#03060D]/80 divide-y divide-white/5">
+          ${item.meta.map(([k, v]) => `
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 px-4 py-3 font-mono text-xs">
+              <span class="text-slate-400">${escapeHtml(k)}:</span>
+              <span class="text-cyan-300 sm:text-right">${escapeHtml(v)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      tabs.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          bioIdx = Number(b.getAttribute('data-bio-idx'));
+          renderBio();
+        });
+      });
+    }
+
+    // SKILLS ORBIT
+    function renderSkills() {
+      const filters = document.getElementById('skill-filters');
+      const grid = document.getElementById('skills-grid');
+      const cats = ['All', ...Array.from(new Set(portfolioConfig.skills.map(s => s.category)))];
+
+      filters.innerHTML = cats.map(c => `
+        <button type="button" data-skill-cat="${escapeHtml(c)}" class="rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold transition ${
+          c === skillFilter
+            ? 'bg-cyan-400 text-slate-950'
+            : 'border border-white/15 bg-[#060C18] text-slate-400 hover:text-white'
+        }">${escapeHtml(c)}</button>
+      `).join('');
+
+      const list = skillFilter === 'All'
+        ? portfolioConfig.skills
+        : portfolioConfig.skills.filter(s => s.category === skillFilter);
+
+      grid.innerHTML = list.map((s, idx) => `
+        <div class="hud-panel rounded-xl p-4 text-center space-y-2.5">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-cyan-400/50 bg-cyan-500/10 font-display text-sm font-bold text-cyan-300 shadow-[0_0_16px_rgba(34,211,238,0.18)]">
+            ${escapeHtml(s.code)}
+          </div>
+          <div>
+            <p class="font-semibold text-sm text-white">${escapeHtml(s.name)}</p>
+            <p class="font-mono text-[10px] text-slate-400">${escapeHtml(s.category)}</p>
+          </div>
+          <p class="font-mono text-[10px] text-cyan-400/80">NODE // ${String(idx + 1).padStart(2, '0')}</p>
+        </div>
+      `).join('');
+
+      filters.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          skillFilter = b.getAttribute('data-skill-cat');
+          renderSkills();
+        });
+      });
+    }
+
+    // CYBER CITY PROJECTS
+    function renderProjects() {
+      const filters = document.getElementById('project-filters');
+      const grid = document.getElementById('projects-grid');
+      const cats = ['All', ...Array.from(new Set(portfolioConfig.projects.map(p => p.category)))];
+
+      filters.innerHTML = cats.map(c => `
+        <button type="button" data-proj-cat="${escapeHtml(c)}" class="rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold transition ${
+          c === projectFilter
+            ? 'bg-cyan-400 text-slate-950'
+            : 'border border-white/15 bg-[#060C18] text-slate-400 hover:text-white'
+        }">${escapeHtml(c)}</button>
+      `).join('');
+
+      const list = projectFilter === 'All'
+        ? portfolioConfig.projects
+        : portfolioConfig.projects.filter(p => p.category === projectFilter);
+
+      grid.innerHTML = list.map(p => `
+        <article data-repo-url="${escapeHtml(p.repoUrl)}" class="project-card hud-panel rounded-xl p-5 flex flex-col justify-between space-y-4 cursor-pointer">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] text-cyan-300">${escapeHtml(p.category)}</span>
+              <span class="font-mono text-[10px] text-slate-400 inline-flex items-center gap-1"><i data-lucide="github" class="h-3 w-3"></i> REPO</span>
+            </div>
+            <h3 class="font-display text-base font-bold text-white">${escapeHtml(p.name)}</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(p.description)}</p>
+          </div>
+          <div class="space-y-3">
+            <div class="flex flex-wrap gap-1.5">
+              ${p.stack.map(t => `<span class="rounded border border-white/10 bg-[#03060D] px-2 py-0.5 font-mono text-[10px] text-cyan-200">${escapeHtml(t)}</span>`).join('')}
+            </div>
+            <button type="button" data-inspect-id="${escapeHtml(p.id)}" class="inspect-btn w-full inline-flex items-center justify-center gap-2 rounded-md border border-cyan-500/30 bg-[#03060D] py-2 font-mono text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/15 transition">
+              <i data-lucide="scan" class="h-3.5 w-3.5"></i> INSPECT BUILDING
+            </button>
+          </div>
+        </article>
+      `).join('');
+
+      filters.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          projectFilter = b.getAttribute('data-proj-cat');
+          renderProjects();
+          lucide.createIcons();
+        });
+      });
+
+      grid.querySelectorAll('.project-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('button, a')) return;
+          const url = card.getAttribute('data-repo-url');
+          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
+      });
+
+      grid.querySelectorAll('.inspect-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const p = portfolioConfig.projects.find(x => x.id === btn.getAttribute('data-inspect-id'));
+          if (!p) return;
+          document.getElementById('project-modal-body').innerHTML = `
+            <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] text-cyan-300">${escapeHtml(p.category)}</span>
+            <h3 class="font-display text-2xl font-bold text-white">${escapeHtml(p.name)}</h3>
+            <p class="text-sm text-slate-300">${escapeHtml(p.description)}</p>
+            <ul class="space-y-1.5 text-xs text-slate-300 font-mono list-disc pl-5">
+              ${p.highlights.map(h => `<li>${escapeHtml(h)}</li>`).join('')}
+            </ul>
+            <div class="pt-2">
+              <a href="${escapeHtml(p.repoUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-md bg-cyan-400 px-4 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-300">
+                <i data-lucide="github" class="h-4 w-4"></i> OPEN GITHUB REPOSITORY
+              </a>
+            </div>
+          `;
+          const m = document.getElementById('project-modal');
+          m.classList.remove('hidden');
+          m.classList.add('flex');
+          lucide.createIcons();
+        });
+      });
+    }
+
+    // TIME WARP (EXPERIENCE)
+    function renderWarp() {
+      const pills = document.getElementById('warp-pills');
+      const card = document.getElementById('warp-card-content');
+      const dots = document.getElementById('warp-dots');
+
+      pills.innerHTML = portfolioConfig.experience.map((e, idx) => `
+        <button type="button" data-warp-idx="${idx}" class="rounded-md px-3 py-1.5 font-mono text-[11px] font-semibold transition ${
+          idx === warpIdx
+            ? 'bg-cyan-400 text-slate-950'
+            : 'border border-white/15 bg-[#060C18] text-slate-400 hover:text-white'
+        }">${escapeHtml(e.category)}</button>
+      `).join('');
+
+      const item = portfolioConfig.experience[warpIdx];
+      card.innerHTML = `
+        <div class="flex items-center justify-between font-mono text-xs">
+          <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-cyan-300">${escapeHtml(item.category)}</span>
+          <span class="text-slate-400">${escapeHtml(item.label)} • STOP [${warpIdx + 1}/${portfolioConfig.experience.length}]</span>
+        </div>
+        <h3 class="font-display text-xl sm:text-2xl font-bold text-white">${escapeHtml(item.title)}</h3>
+        <p class="font-mono text-xs text-cyan-300">${escapeHtml(item.org)}</p>
+        <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml(item.description)}</p>
+        <div class="flex flex-wrap gap-2 pt-2">
+          ${item.tags.map(t => `<span class="rounded border border-white/10 bg-[#03060D] px-2.5 py-1 font-mono text-[11px] text-slate-300">${escapeHtml(t)}</span>`).join('')}
+        </div>
+      `;
+
+      dots.innerHTML = portfolioConfig.experience.map((_, idx) => `
+        <span class="h-2 w-2 rounded-full ${idx === warpIdx ? 'bg-cyan-400' : 'bg-slate-600'}"></span>
+      `).join('');
+
+      pills.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => {
+          warpIdx = Number(b.getAttribute('data-warp-idx'));
+          renderWarp();
+        });
+      });
+    }
+
+    // LIVE GITHUB TELEMETRY
+    async function loadGitHub() {
+      const u = portfolioConfig.social.githubUsername;
+      const bio = document.getElementById('gh-bio');
+      const metrics = document.getElementById('gh-metrics');
+      const reposEl = document.getElementById('gh-repos');
+      const eventsEl = document.getElementById('gh-events');
+
+      bio.textContent = 'Querying GitHub public API...';
+      try {
+        const [uRes, rRes, eRes] = await Promise.all([
+          fetch(`https://api.github.com/users/${u}`),
+          fetch(`https://api.github.com/users/${u}/repos?sort=updated&per_page=4`),
+          fetch(`https://api.github.com/users/${u}/events/public?per_page=5`)
+        ]);
+        if (!uRes.ok) throw new Error('API Error');
+        const user = await uRes.json();
+        const repos = rRes.ok ? await rRes.json() : [];
+        const events = eRes.ok ? await eRes.json() : [];
+
+        document.getElementById('gh-name').textContent = user.name || u;
+        bio.textContent = user.bio || `GitHub Profile (@${u})`;
+        metrics.innerHTML = `
+          <div><span class="text-cyan-400 font-bold">${Number(user.public_repos ?? 0)}</span> REPOS</div>
+          <div><span class="text-cyan-400 font-bold">${Number(user.followers ?? 0)}</span> FOLLOWERS</div>
+          <div><span class="text-cyan-400 font-bold">${Number(user.following ?? 0)}</span> FOLLOWING</div>
+        `;
+
+        reposEl.innerHTML = Array.isArray(repos) && repos.length
+          ? repos.map(r => `
+            <a href="${escapeHtml(r.html_url)}" target="_blank" rel="noopener noreferrer" class="hud-panel rounded-xl p-4 block space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-display text-sm font-bold text-white truncate">${escapeHtml(r.name)}</span>
+                <i data-lucide="arrow-up-right" class="h-3.5 w-3.5 text-cyan-400 shrink-0"></i>
+              </div>
+              <p class="text-xs text-slate-400 line-clamp-2">${escapeHtml(r.description || 'No description provided.')}</p>
+            </a>
+          `).join('')
+          : `<div class="col-span-full hud-panel rounded-xl p-5 font-mono text-xs text-slate-400">No public repositories returned.</div>`;
+
+        eventsEl.innerHTML = Array.isArray(events) && events.length
+          ? events.map(ev => `<div class="border-b border-white/10 pb-2 last:border-0"><span class="text-cyan-300">${escapeHtml(ev.type.replace('Event', ''))}</span> • ${escapeHtml(ev.repo?.name || '')}</div>`).join('')
+          : `<p class="text-slate-400">No recent public events available.</p>`;
+      } catch {
+        bio.textContent = 'Live GitHub API unavailable (rate-limited or offline).';
+        metrics.innerHTML = `<span class="text-slate-500">API FALLBACK</span>`;
+        reposEl.innerHTML = `<div class="col-span-full hud-panel rounded-xl p-5 font-mono text-xs text-slate-300">Visit <a href="${escapeHtml(portfolioConfig.social.github)}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 underline">github.com/${escapeHtml(u)}</a> to view repositories.</div>`;
+        eventsEl.innerHTML = `<p class="text-slate-400">Live activity unavailable without fabricating data.</p>`;
+      }
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // INIT
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+      initThreeBackground();
+      renderBio();
+      renderSkills();
+      renderProjects();
+      renderWarp();
+      loadGitHub();
+      switchView('core');
+      lucide.createIcons();
+
+      // Rotating Role
+      let roleIdx = 0;
+      setInterval(() => {
+        roleIdx = (roleIdx + 1) % portfolioConfig.roles.length;
+        const el = document.getElementById('rotating-role');
+        if (el) el.textContent = portfolioConfig.roles[roleIdx];
+      }, 2800);
+
+      // Avatar Fallback
+      const av = document.getElementById('hero-avatar');
+      const fb = document.getElementById('hero-avatar-fallback');
+      av.addEventListener('error', () => {
+        av.classList.add('hidden');
+        fb.classList.remove('hidden');
+        fb.classList.add('flex');
+      });
+
+      // View Navigation Triggers
+      document.querySelectorAll('.nav-trigger').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-view-target');
+          if (target) switchView(target);
+        });
+      });
+
+      document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
+      });
+
+      // Bio Prev/Next
+      document.getElementById('bio-prev-btn').addEventListener('click', () => {
+        bioIdx = (bioIdx - 1 + portfolioConfig.bioScreens.length) % portfolioConfig.bioScreens.length;
+        renderBio();
+      });
+      document.getElementById('bio-next-btn').addEventListener('click', () => {
+        bioIdx = (bioIdx + 1) % portfolioConfig.bioScreens.length;
+        renderBio();
+      });
+
+      // Warp Prev/Next
+      document.getElementById('warp-prev-btn').addEventListener('click', () => {
+        warpIdx = (warpIdx - 1 + portfolioConfig.experience.length) % portfolioConfig.experience.length;
+        renderWarp();
+      });
+      document.getElementById('warp-next-btn').addEventListener('click', () => {
+        warpIdx = (warpIdx + 1) % portfolioConfig.experience.length;
+        renderWarp();
+      });
+
+      document.getElementById('refresh-gh-btn').addEventListener('click', loadGitHub);
+
+      // Project Modal
+      document.getElementById('close-project-modal').addEventListener('click', () => {
+        const m = document.getElementById('project-modal');
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      });
+
+      // Terminal Modal
+      const termModal = document.getElementById('terminal-modal');
+      ['open-terminal-top', 'open-terminal-hero'].forEach(id => {
+        document.getElementById(id).addEventListener('click', () => {
+          termModal.classList.remove('hidden');
+          termModal.classList.add('flex');
+          document.getElementById('terminal-input').focus();
+        });
+      });
+      document.getElementById('close-terminal-modal').addEventListener('click', () => {
+        termModal.classList.add('hidden');
+        termModal.classList.remove('flex');
+      });
+      document.getElementById('terminal-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const inp = document.getElementById('terminal-input');
+        const cmd = inp.value.trim().toLowerCase();
+        const out = document.getElementById('terminal-output');
+        if (!cmd) return;
+        const responses = {
+          help: 'Commands: whoami | skills | projects | github | contact | clear',
+          whoami: 'Raghvendra Dubey — B.Tech CSE (2028) @ UCER Prayagraj | AI/ML & Full-Stack Developer',
+          skills: 'Python, Java, C, JS/TS, React, Tailwind, FastAPI, Node.js, LLMs, AI Agents, Faster-Whisper',
+          projects: 'Daymark | RepoPilot AI | VoxText | AICTE Workflow Automation | Purohit Setu | TaskFlow',
+          github: 'https://github.com/raghvendradubey01',
+          contact: 'Email: raghvendradubey7439@gmail.com'
+        };
+        if (cmd === 'clear') {
+          out.innerHTML = '';
+        } else {
+          out.innerHTML += `<p class="text-cyan-400">&gt; ${escapeHtml(cmd)}</p><p class="text-slate-200">${escapeHtml(responses[cmd] || 'Unknown command. Type "help".')}</p>`;
+          out.scrollTop = out.scrollHeight;
+        }
+        inp.value = '';
+      });
+
+      // Resume Modal
+      const resModal = document.getElementById('resume-modal');
+      document.getElementById('open-resume-btn').addEventListener('click', () => {
+        resModal.classList.remove('hidden');
+        resModal.classList.add('flex');
+      });
+      document.getElementById('close-resume-modal').addEventListener('click', () => {
+        resModal.classList.add('hidden');
+        resModal.classList.remove('flex');
+      });
+      document.getElementById('download-resume-txt').addEventListener('click', () => {
+        const txt = `${portfolioConfig.name}\n${portfolioConfig.email}\n${portfolioConfig.social.github}\n${portfolioConfig.education.degree} - ${portfolioConfig.education.college} (${portfolioConfig.education.graduationYear})`;
+        const blob = new Blob([txt], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Raghvendra_Dubey_Resume.txt';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Resume summary downloaded.');
+      });
+
+      // Copy Email
+      document.getElementById('copy-email-btn').addEventListener('click', async () => {
+        let ok = false;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          try { await navigator.clipboard.writeText(portfolioConfig.email); ok = true; } catch (_) {}
+        }
+        if (!ok) {
+          const ta = document.createElement('textarea');
+          ta.value = portfolioConfig.email;
+          document.body.appendChild(ta);
+          ta.select();
+          try { ok = document.execCommand('copy'); } catch (_) {}
+          document.body.removeChild(ta);
+        }
+        if (ok) {
+          document.getElementById('copy-label').textContent = 'COPIED';
+          showToast('Email copied to clipboard.');
+          setTimeout(() => { document.getElementById('copy-label').textContent = 'COPY'; }, 2000);
+        }
+      });
+
+      // Contact Form
+      document.getElementById('contact-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('cf-name').value.trim();
+        const email = document.getElementById('cf-email').value.trim();
+        const subject = document.getElementById('cf-subject').value.trim();
+        const msg = document.getElementById('cf-message').value.trim();
+        const setE = (id, t) => {
+          const el = document.getElementById(id);
+          el.textContent = t || '';
+          el.classList.toggle('hidden', !t);
+        };
+        let valid = true;
+        if (name.length < 2) { setE('err-name', 'REQUIRED'); valid = false; } else setE('err-name', '');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setE('err-email', 'INVALID EMAIL'); valid = false; } else setE('err-email', '');
+        if (subject.length < 3) { setE('err-subject', 'REQUIRED'); valid = false; } else setE('err-subject', '');
+        if (msg.length < 10) { setE('err-message', 'MIN 10 CHARS'); valid = false; } else setE('err-message', '');
+        if (!valid) return;
+        showToast('Dispatching email client...');
+        window.location.href = `mailto:${encodeURIComponent(portfolioConfig.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`From: ${name} (${email})\n\n${msg}`)}`;
+        e.target.reset();
+      });
+    });
+  </script>
+</body>
+</html>
